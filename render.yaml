@@ -46,7 +46,7 @@ services:
     repo: https://github.com/Mrrll/MyBilling.git
     branch: main
     dockerfilePath: laravel/Dockerfile
-    startCommand: php artisan reverb:start --host 0.0.0.0 --port $PORT
+    dockerCommand: php artisan reverb:start --host 0.0.0.0 --port $PORT
     envVars:
       - { key: APP_ENV, value: production }
       - { key: APP_DEBUG, value: 'false' }
@@ -78,7 +78,7 @@ services:
     repo: https://github.com/Mrrll/MyBilling.git
     branch: main
     dockerfilePath: laravel/Dockerfile
-    startCommand: php artisan queue:work --tries=1 --sleep=1 --backoff=3
+    dockerCommand: php artisan queue:work --tries=1 --sleep=1 --backoff=3
     envVars:
       - { key: APP_ENV, value: production }
       - { key: APP_DEBUG, value: 'false' }
