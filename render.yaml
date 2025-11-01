@@ -1,5 +1,3 @@
-# infra-mybilling/render.yaml
-
 databases:
   - name: mybilling-pg
     plan: free
@@ -8,7 +6,6 @@ databases:
     user: mybilling
 
 services:
-  # -------- WEB (Laravel) --------
   - name: mybilling-web
     type: web
     plan: free
@@ -22,101 +19,20 @@ services:
     dockerCommand: >-
       bash -lc "mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
                 php artisan config:cache || true &&
-                php -S 0.0.0.0:$PORT -t public"
-    envVars:
-      - fromGroup: mybilling-prod                # <— AQUÍ VA EL ENV GROUP
-      # DB desde la base creada en este blueprint
-      - key: DB_HOST
-        fromDatabase:
-          name: mybilling-pg
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: mybilling-pg
-          property: port
-      - key: DB_DATABASE
-        fromDatabase:
-          name: mybilling-pg
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: mybilling-pg
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: mybilling-pg
-          property: password
-
-  # -------- REVERB (WebSockets) --------
-  - name: mybilling-reverb
-    type: web             # en plan Free lo dejamos como web para healthcheck
-    plan: free
-    region: frankfurt
-    runtime: docker
-    repo: https://github.com/Mrrll/MyBilling.git
-    branch: master
-    dockerfilePath: laravel/Dockerfile
-    autoDeploy: true
-    healthCheckPath: /healthz
-    dockerCommand: >-
-      bash -lc "mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
-                php artisan config:cache || true &&
-                php artisan reverb:start --host 0.0.0.0 --port $PORT"
+                # web en segundo plano
+                php -S 0.0.0.0:$PORT -t public & 
+                # pequeño respiro y arranca el worker
+                sleep 1 &&
+                php artisan queue:work --tries=1 --sleep=1 --backoff=3"
     envVars:
       - fromGroup: mybilling-prod
       - key: DB_HOST
-        fromDatabase:
-          name: mybilling-pg
-          property: host
+        fromDatabase: { name: mybilling-pg, property: host }
       - key: DB_PORT
-        fromDatabase:
-          name: mybilling-pg
-          property: port
+        fromDatabase: { name: mybilling-pg, property: port }
       - key: DB_DATABASE
-        fromDatabase:
-          name: mybilling-pg
-          property: database
+        fromDatabase: { name: mybilling-pg, property: database }
       - key: DB_USERNAME
-        fromDatabase:
-          name: mybilling-pg
-          property: user
+        fromDatabase: { name: mybilling-pg, property: user }
       - key: DB_PASSWORD
-        fromDatabase:
-          name: mybilling-pg
-          property: password
-
-  # -------- QUEUE (driver database) --------
-  - name: mybilling-queue
-    type: web             # usamos web para healthcheck en Free
-    plan: free
-    region: frankfurt
-    runtime: docker
-    repo: https://github.com/Mrrll/MyBilling.git
-    branch: master
-    dockerfilePath: laravel/Dockerfile
-    autoDeploy: true
-    healthCheckPath: /healthz
-    dockerCommand: >-
-      bash -lc "bash laravel/render-start-queue.sh"
-    envVars:
-      - fromGroup: mybilling-prod
-      - key: DB_HOST
-        fromDatabase:
-          name: mybilling-pg
-          property: host
-      - key: DB_PORT
-        fromDatabase:
-          name: mybilling-pg
-          property: port
-      - key: DB_DATABASE
-        fromDatabase:
-          name: mybilling-pg
-          property: database
-      - key: DB_USERNAME
-        fromDatabase:
-          name: mybilling-pg
-          property: user
-      - key: DB_PASSWORD
-        fromDatabase:
-          name: mybilling-pg
-          property: password
+        fromDatabase: { name: mybilling-pg, property: password }
