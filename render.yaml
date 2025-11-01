@@ -54,4 +54,70 @@ services:
     repo: https://github.com/Mrrll/MyBilling.git
     branch: master
     dockerfilePath: laravel/Dockerfile
-    # Prepara director
+    # Prepara directorios de cache y arranca Reverb en el $PORT de Render
+    dockerCommand: >-
+      bash -lc "mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
+                php artisan config:cache || true &&
+                php artisan reverb:start --host 0.0.0.0 --port $PORT"
+    envVars:
+      - { key: APP_ENV, value: production }
+      - { key: APP_DEBUG, value: 'false' }
+      - { key: APP_URL, value: https://<RELLENAR_MYBILLING_WEB>.onrender.com }
+      # APP_KEY igual que en web/queue
+      - { key: APP_KEY, value: base64:Ww8g4M+0j3s8m2sHh1ZkQ1m2Yz6GQ2Jm1xZKp3d7i9Q= }
+
+      - { key: QUEUE_CONNECTION, value: database }
+      - { key: BROADCAST_CONNECTION, value: reverb }
+
+      - { key: REVERB_CLIENT_HOST, value: https://<RELLENAR_MYBILLING_REVERB>.onrender.com }
+      - { key: REVERB_CLIENT_SCHEME, value: https }
+      - { key: REVERB_CLIENT_PORT, value: '' }
+
+      - { key: DB_CONNECTION, value: pgsql }
+      - key: DB_HOST
+        fromDatabase: { name: mybilling-pg, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: mybilling-pg, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: mybilling-pg, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: mybilling-pg, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: mybilling-pg, property: password }
+    # (sin healthCheckPath para evitar falsos negativos)
+    autoDeploy: true
+
+  # ──────────────────────── MyBilling: Queue (web service) ────────────────────────
+  - name: mybilling-queue
+    type: web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    repo: https://github.com/Mrrll/MyBilling.git
+    branch: master
+    dockerfilePath: laravel/Dockerfile
+    # Arranque robusto desde script (evita problemas de comillas y prepara paths)
+    dockerCommand: bash laravel/render-start-queue.sh
+    envVars:
+      - { key: APP_ENV, value: production }
+      - { key: APP_DEBUG, value: 'false' }
+      - { key: APP_URL, value: https://<RELLENAR_MYBILLING_WEB>.onrender.com }
+      # APP_KEY igual que en web/reverb
+      - { key: APP_KEY, value: base64:Ww8g4M+0j3s8m2sHh1ZkQ1m2Yz6GQ2Jm1xZKp3d7i9Q= }
+
+      - { key: QUEUE_CONNECTION, value: database }
+      - { key: BROADCAST_CONNECTION, value: reverb }
+
+      - { key: DB_CONNECTION, value: pgsql }
+      - key: DB_HOST
+        fromDatabase: { name: mybilling-pg, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: mybilling-pg, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: mybilling-pg, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: mybilling-pg, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: mybilling-pg, property: password }
+    healthCheckPath: /healthz
+    autoDeploy: true
