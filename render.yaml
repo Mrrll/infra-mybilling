@@ -1,0 +1,100 @@
+databases:
+  - name: mybilling-pg
+    databaseName: mybilling
+    user: mybilling
+    plan: free
+    region: frankfurt
+
+services:
+  - name: mybilling-web
+    type: web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    repo: https://github.com/Mrrll/MyBilling.git
+    branch: main
+    dockerfilePath: laravel/Dockerfile
+    envVars:
+      - { key: APP_ENV, value: production }
+      - { key: APP_DEBUG, value: 'false' }
+      - { key: APP_URL, value: https://<RELLENAR_MYBILLING_WEB>.onrender.com }
+      - { key: APP_KEY, value: <RELLENAR_APP_KEY_PRIMER_DEPLOY> }
+      - { key: QUEUE_CONNECTION, value: database }
+      - { key: BROADCAST_CONNECTION, value: reverb }
+      - { key: REVERB_CLIENT_HOST, value: https://<RELLENAR_MYBILLING_REVERB>.onrender.com }
+      - { key: REVERB_CLIENT_SCHEME, value: https }
+      - { key: REVERB_CLIENT_PORT, value: '' }
+      - { key: DB_CONNECTION, value: pgsql }
+      - key: DB_HOST
+        fromDatabase: { name: mybilling-pg, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: mybilling-pg, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: mybilling-pg, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: mybilling-pg, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: mybilling-pg, property: password }
+    healthCheckPath: /healthz
+    autoDeploy: true
+
+  - name: mybilling-reverb
+    type: web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    repo: https://github.com/Mrrll/MyBilling.git
+    branch: main
+    dockerfilePath: laravel/Dockerfile
+    startCommand: php artisan reverb:start --host 0.0.0.0 --port $PORT
+    envVars:
+      - { key: APP_ENV, value: production }
+      - { key: APP_DEBUG, value: 'false' }
+      - { key: APP_URL, value: https://<RELLENAR_MYBILLING_WEB>.onrender.com }
+      - { key: APP_KEY, value: <RELLENAR_MISMA_APP_KEY_QUE_WEB> }
+      - { key: QUEUE_CONNECTION, value: database }
+      - { key: BROADCAST_CONNECTION, value: reverb }
+      - { key: REVERB_CLIENT_HOST, value: https://<RELLENAR_MYBILLING_REVERB>.onrender.com }
+      - { key: REVERB_CLIENT_SCHEME, value: https }
+      - { key: REVERB_CLIENT_PORT, value: '' }
+      - { key: DB_CONNECTION, value: pgsql }
+      - key: DB_HOST
+        fromDatabase: { name: mybilling-pg, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: mybilling-pg, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: mybilling-pg, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: mybilling-pg, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: mybilling-pg, property: password }
+    autoDeploy: true
+
+  - name: mybilling-queue
+    type: worker
+    runtime: docker
+    plan: free
+    region: frankfurt
+    repo: https://github.com/Mrrll/MyBilling.git
+    branch: main
+    dockerfilePath: laravel/Dockerfile
+    startCommand: php artisan queue:work --tries=1 --sleep=1 --backoff=3
+    envVars:
+      - { key: APP_ENV, value: production }
+      - { key: APP_DEBUG, value: 'false' }
+      - { key: APP_URL, value: https://<RELLENAR_MYBILLING_WEB>.onrender.com }
+      - { key: APP_KEY, value: <RELLENAR_MISMA_APP_KEY_QUE_WEB> }
+      - { key: QUEUE_CONNECTION, value: database }
+      - { key: BROADCAST_CONNECTION, value: reverb }
+      - { key: DB_CONNECTION, value: pgsql }
+      - key: DB_HOST
+        fromDatabase: { name: mybilling-pg, property: host }
+      - key: DB_PORT
+        fromDatabase: { name: mybilling-pg, property: port }
+      - key: DB_DATABASE
+        fromDatabase: { name: mybilling-pg, property: database }
+      - key: DB_USERNAME
+        fromDatabase: { name: mybilling-pg, property: user }
+      - key: DB_PASSWORD
+        fromDatabase: { name: mybilling-pg, property: password }
+    autoDeploy: true
