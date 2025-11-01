@@ -19,7 +19,7 @@ services:
       - { key: APP_ENV, value: production }
       - { key: APP_DEBUG, value: 'false' }
       - { key: APP_URL, value: https://<RELLENAR_MYBILLING_WEB>.onrender.com }
-      # APP_KEY válida para primer deploy (misma en web/reverb/queue).
+      # APP_KEY válida compartida (mismo valor en web/reverb/queue)
       - { key: APP_KEY, value: base64:Ww8g4M+0j3s8m2sHh1ZkQ1m2Yz6GQ2Jm1xZKp3d7i9Q= }
       - { key: QUEUE_CONNECTION, value: database }
       - { key: BROADCAST_CONNECTION, value: reverb }
@@ -49,7 +49,6 @@ services:
     repo: https://github.com/Mrrll/MyBilling.git
     branch: master
     dockerfilePath: laravel/Dockerfile
-    # En runtime docker se usa dockerCommand (no startCommand)
     dockerCommand: php artisan reverb:start --host 0.0.0.0 --port $PORT
     envVars:
       - { key: APP_ENV, value: production }
@@ -73,11 +72,10 @@ services:
         fromDatabase: { name: mybilling-pg, property: user }
       - key: DB_PASSWORD
         fromDatabase: { name: mybilling-pg, property: password }
-    # Reverb responde al handshake en /
-    healthCheckPath: /
+    # (sin healthCheckPath para evitar falsos negativos)
     autoDeploy: true
 
-  # ──────────────── MyBilling: Queue (como web service Free) ────────────────
+  # ──────────────── MyBilling: Queue (web service Free) ────────────────
   - name: mybilling-queue
     type: web
     runtime: docker
@@ -86,10 +84,8 @@ services:
     repo: https://github.com/Mrrll/MyBilling.git
     branch: master
     dockerfilePath: laravel/Dockerfile
-    # Levantamos un mini server para healthcheck y el worker en paralelo
-    dockerCommand: >
-      sh -c "php -S 0.0.0.0:$PORT -t public &
-             php artisan queue:work --tries=1 --sleep=1 --backoff=3"
+    dockerCommand: >-
+      bash -lc "php -S 0.0.0.0:$PORT -t public & php artisan queue:work --tries=1 --sleep=1 --backoff=3"
     envVars:
       - { key: APP_ENV, value: production }
       - { key: APP_DEBUG, value: 'false' }
