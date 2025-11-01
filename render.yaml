@@ -11,27 +11,19 @@ services:
     healthCheckPath: /healthz
 
     dockerCommand: >
-      bash -lc "
-      set -e
-      cd /app &&
-      # 1) preparar carpetas
-      mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
-      # 2) levantar web (usar router server.php para rewrites)
-      php -S 0.0.0.0:$PORT -t public server.php &
-      # pequeño respiro para que /healthz esté disponible
-      sleep 1 &&
-      # 3) tareas de app
-      php artisan optimize:clear || true &&
-      php artisan migrate --force &&
-      php artisan queue:table || true &&
-      php artisan migrate --force &&
-      php artisan storage:link || true &&
-      php artisan config:cache &&
-      php artisan route:cache &&
-      php artisan view:cache &&
-      # 4) arrancar el worker en foreground
-      exec php artisan queue:work --tries=1 --sleep=1 --backoff=3
-      "
+      bash -lc "set -e; cd /app;
+      mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache;
+      php -S 0.0.0.0:$PORT -t public public/index.php &
+      sleep 1;
+      php artisan optimize:clear || true;
+      php artisan migrate --force || true;
+      php artisan queue:table || true;
+      php artisan migrate --force || true;
+      php artisan storage:link || true;
+      php artisan config:cache || true;
+      php artisan route:cache || true;
+      php artisan view:cache || true;
+      exec php artisan queue:work --tries=1 --sleep=1 --backoff=3"
 
     envVars:
       - fromGroup: mybilling-prod
