@@ -12,12 +12,25 @@ services:
 
     dockerCommand: >
       bash -lc "
+      set -e
       cd /app &&
+      # 1) preparar carpetas
       mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
-      php artisan config:cache || true &&
+      # 2) levantar web (usar router server.php para rewrites)
       php -S 0.0.0.0:$PORT -t public server.php &
+      # pequeño respiro para que /healthz esté disponible
       sleep 1 &&
-      php artisan queue:work --tries=1 --sleep=1 --backoff=3
+      # 3) tareas de app
+      php artisan optimize:clear || true &&
+      php artisan migrate --force &&
+      php artisan queue:table || true &&
+      php artisan migrate --force &&
+      php artisan storage:link || true &&
+      php artisan config:cache &&
+      php artisan route:cache &&
+      php artisan view:cache &&
+      # 4) arrancar el worker en foreground
+      exec php artisan queue:work --tries=1 --sleep=1 --backoff=3
       "
 
     envVars:
@@ -32,17 +45,3 @@ services:
         fromDatabase: { name: mybilling-pg, property: user }
       - key: DB_PASSWORD
         fromDatabase: { name: mybilling-pg, property: password }
-
-    postDeployCommand: >
-      bash -lc "
-      cd /app &&
-      mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
-      php artisan optimize:clear || true &&
-      php artisan migrate --force &&
-      php artisan queue:table || true &&
-      php artisan migrate --force &&
-      php artisan storage:link || true &&
-      php artisan config:cache &&
-      php artisan route:cache &&
-      php artisan view:cache
-      "
