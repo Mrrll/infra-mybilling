@@ -1,10 +1,3 @@
-databases:
-  - name: mybilling-pg
-    plan: free
-    region: frankfurt
-    databaseName: mybilling
-    user: mybilling
-
 services:
   - name: mybilling-web
     type: web
@@ -16,14 +9,17 @@ services:
     dockerfilePath: laravel/Dockerfile
     autoDeploy: true
     healthCheckPath: /healthz
-    dockerCommand: >-
-      bash -lc "mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
-                php artisan config:cache || true &&
-                # web en segundo plano
-                php -S 0.0.0.0:$PORT -t public & 
-                # pequeño respiro y arranca el worker
-                sleep 1 &&
-                php artisan queue:work --tries=1 --sleep=1 --backoff=3"
+
+    dockerCommand: >
+      bash -lc "
+      cd /app &&
+      mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
+      php artisan config:cache || true &&
+      php -S 0.0.0.0:$PORT -t public &
+      sleep 1 &&
+      php artisan queue:work --tries=1 --sleep=1 --backoff=3
+      "
+
     envVars:
       - fromGroup: mybilling-prod
       - key: DB_HOST
@@ -36,6 +32,7 @@ services:
         fromDatabase: { name: mybilling-pg, property: user }
       - key: DB_PASSWORD
         fromDatabase: { name: mybilling-pg, property: password }
+
     postDeployCommand: >
       bash -lc "
       cd /app &&
