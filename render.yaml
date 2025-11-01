@@ -15,7 +15,7 @@ services:
       cd /app &&
       mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
       php artisan config:cache || true &&
-      php -S 0.0.0.0:$PORT -t public &
+      php -S 0.0.0.0:$PORT -t public server.php &
       sleep 1 &&
       php artisan queue:work --tries=1 --sleep=1 --backoff=3
       "
