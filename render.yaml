@@ -36,3 +36,16 @@ services:
         fromDatabase: { name: mybilling-pg, property: user }
       - key: DB_PASSWORD
         fromDatabase: { name: mybilling-pg, property: password }
+    postDeployCommand: >
+      bash -lc "
+      cd /app &&
+      mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache &&
+      php artisan optimize:clear || true &&
+      php artisan migrate --force &&
+      php artisan queue:table || true &&
+      php artisan migrate --force &&
+      php artisan storage:link || true &&
+      php artisan config:cache &&
+      php artisan route:cache &&
+      php artisan view:cache
+      "
