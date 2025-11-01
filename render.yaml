@@ -10,20 +10,8 @@ services:
     autoDeploy: true
     healthCheckPath: /healthz
 
-    dockerCommand: >
-      bash -lc "set -e; cd /app;
-      mkdir -p storage/framework/{cache,sessions,views} bootstrap/cache;
-      php -S 0.0.0.0:$PORT -t public public/index.php &
-      sleep 1;
-      php artisan optimize:clear || true;
-      php artisan migrate --force || true;
-      php artisan queue:table || true;
-      php artisan migrate --force || true;
-      php artisan storage:link || true;
-      php artisan config:cache || true;
-      php artisan route:cache || true;
-      php artisan view:cache || true;
-      exec php artisan queue:work --tries=1 --sleep=1 --backoff=3"
+    # EJECUTA EL SCRIPT
+    dockerCommand: /usr/local/bin/start.sh
 
     envVars:
       - fromGroup: mybilling-prod
